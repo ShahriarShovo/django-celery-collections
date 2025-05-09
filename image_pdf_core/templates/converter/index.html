@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image to PDF Converter</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <style>
+        .file-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .file-list li {
+            background: white;
+            color: #007BFF;
+            margin: 5px 0;
+            padding: 5px;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-center bg-gray-100">
+    <header class="w-full bg-white py-4 shadow-md">
+        <div class="container mx-auto flex items-center justify-between">
+            <h1 class="text-2xl font-bold text-blue-700">Image to PDF Converter</h1>
+            <button class="bg-blue-700 text-white px-4 py-2 rounded">Start Free Trial</button>
+        </div>
+    </header>
+    <div class="container mx-auto p-4 mt-8 flex flex-col items-center">
+        <h2 class="text-4xl font-bold mb-4 text-center">Millions of people trust our service to edit, manage, and share documents online</h2>
+        <div id="drop-area" class="w-full max-w-xl border-4 border-dashed border-gray-300 p-8 mb-4 bg-white rounded text-center">
+            <p class="mb-2 text-gray-600">Drag and drop images here or click the button to select files</p>
+            <input type="file" id="fileElem" class="hidden" multiple accept="image/*" onchange="handleFiles(this.files)">
+            <button class="bg-blue-700 text-white px-4 py-2 rounded" onclick="document.getElementById('fileElem').click()">Select from device</button>
+            <ul id="file-list" class="file-list mt-4"></ul>
+        </div>
+        <button id="generate-pdf" class="bg-blue-700 text-white px-4 py-2 rounded mb-4" onclick="generatePDF()">Generate PDF</button>
+        <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
+    </div>
+    <script>
+        let files = [];
+        function handleFiles(selectedFiles) {
+            const fileList = document.getElementById('file-list');
+            fileList.innerHTML = '';
+            for (let i = 0; i < selectedFiles.length; i++) {
+                files.push(selectedFiles[i]);
+                const li = document.createElement('li');
+                li.textContent = selectedFiles[i].name;
+                fileList.appendChild(li);
+            }
+        }
+        function generatePDF() {
+            if (files.length === 0) {
+                alert('Please select some images first.');
+                return;
+            }
+            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+            const formData = new FormData();
+            files.forEach((file, index) => {
+                formData.append(`file`, file);
+            });
+            fetch('/upload/', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRFToken': csrfToken
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    window.location.href = '/pdf_generation_in_progress/';
+                } else {
+                    alert('PDF generation failed.');
+                }
+            })
+            .catch(error => {
+                alert('Error generating PDF.');
+                console.error('Error:', error);
+            });
+        }
+        document.getElementById('drop-area').addEventListener('dragover', (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            event.dataTransfer.dropEffect = 'copy';
+        });
+        document.getElementById('drop-area').addEventListener('drop', (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            const dt = event.dataTransfer;
+            const files = dt.files;
+            handleFiles(files);
+        });
+    </script>
+</body>
+</html>
